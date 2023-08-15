@@ -15,11 +15,49 @@
 import numpy as np
 import cv2
 import pyrealsense2 as rs
+import serial
+import csv
+from usb_rs import Usb_rs
+import threading
 
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
+
+#Timeout(1sec)
+Timeout_default = 1
+
+## Resistance Reading Function
+def read_R():
+    #Instantiation of the usb_rs communication class
+    serial = Usb_rs()
+
+    #Connect
+    # print("Port?")
+    port = "COM3"  
+    # print("Speed?")
+    speed = 9600
+    if not serial.open(port,speed):
+        return
+    
+    #Send and receive commands
+
+        # print("Please enter the command (Exit with no input)")
+    command = "MEAS:RES?"
+        #Exit if no input
+    # if command == "":
+    #     break
+        #If the command contains "?"
+    if "?" in command :
+        msgBuf = serial.SendQueryMsg(command, Timeout_default)
+        #print(msgBuf) 
+        #Send only
+    else:
+        serial.sendMsg(command)
+        
+    serial.close()
+    return msgBuf
 
 ## Color Filter Tool Functions
 def colorFilter(img_color, mode = "red"):
