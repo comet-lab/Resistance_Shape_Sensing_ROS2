@@ -27,7 +27,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
 
-
+## Resistance Meter Package
 class Usb_rs:
 
     def __init__(self, gui=False):
