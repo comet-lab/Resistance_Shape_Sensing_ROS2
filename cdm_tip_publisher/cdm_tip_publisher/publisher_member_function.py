@@ -27,6 +27,9 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
 
+global data_R
+
+
 ## Resistance Meter Package
 class Usb_rs:
 
@@ -134,7 +137,7 @@ def read_R():
 
     #Connect
     # print("Port?")
-    port = "COM3"  
+    port = "/dev/ttyACM0"  
     # print("Speed?")
     speed = 9600
     if not serial1.open(port,speed):
@@ -250,6 +253,8 @@ class posPublisher(Node):
             cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
             cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
             cv2.imshow('Robot Tip Locator', img_gray)
+            # data = read_R()
+            # print(data_R)
         if cv2.waitKey(1) & 0xFF == 27:
             self.pipeline.stop()
             cv2.destroyAllWindows()
@@ -258,13 +263,18 @@ class posPublisher(Node):
         msg = Resistance()
         msg.pos1 = int(x)
         msg.pos2 = int(y)
+        msg.resistance = float(data_R)
         self.publisher_.publish(msg)
-        self.get_logger().info('Publishing X: "%i"' % msg.pos1)
-        self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
+        # self.get_logger().info('Publishing X: "%i"' % msg.pos1)
+        # self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
+        # self.get_logger().info('Publishing R: "%f"' % msg.resistance)
         self.i += 1
 
 
 def main(args=None):
+    x = threading.Thread(target=thread_function) 
+    x.start()
+    print("thread started")
     rclpy.init(args=args)
 
     node = posPublisher()
@@ -276,6 +286,14 @@ def main(args=None):
     # when the garbage collector destroys the node object)
     node.destroy_node()
     rclpy.shutdown()
+
+
+## Resistance value reading thread
+def thread_function(): 
+    global data_R
+    while 1:
+        data_R = read_R()
+        # print(data_R)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pos_publisher = cdm_tip_publisher.publisher_member_function:main',
+            'pos_subscriber = cdm_tip_publisher.subscriber_member_function:main',
         ],
     },
 )

@@ -1,2 +1,3 @@
 int64 pos1
 int64 pos2
+float64 resistance
