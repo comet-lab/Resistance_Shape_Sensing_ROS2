@@ -28,6 +28,8 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 global data_R
 
@@ -221,9 +223,11 @@ class posPublisher(Node):
         self.jpg = 0
         self.jpg_counter = 0
         self.publisher_ = self.create_publisher(Resistance, 'r_sensor', 10)
+        self.image_publisher = self.create_publisher(Image, 'wrist_frame', 10)
         timer_period = 0.1 # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
+        self.br = CvBridge()
 
         # init color stream
         self.pipeline = rs.pipeline()
@@ -253,22 +257,22 @@ class posPublisher(Node):
             # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
             # plt.imshow(img_gray)
             # plt.show()
-            self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
+            # self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
             self.init = False
             print('init done')
         if none_zero_points is not None:
             coordinates_text = f"x={int(x)}, y={int(y)}"
             cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
             cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-            self.jpg_counter += 1
-            print(self.jpg_counter)
-            if self.jpg_counter == 100:
-                self.jpg_counter = 0
-                # plt_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
-                cv2.imwrite(os.path.join(self.path, str(self.jpg)+'.jpg'), color_img)
-                # plt.savefig(str(self.jpg)+'.png')
-                print('saved pose')
-                self.jpg += 1
+            # self.jpg_counter += 1
+            # print(self.jpg_counter)
+            # if self.jpg_counter == 100:
+            #     self.jpg_counter = 0
+            #     # plt_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
+            #     cv2.imwrite(os.path.join(self.path, str(self.jpg)+'.jpg'), color_img)
+            #     # plt.savefig(str(self.jpg)+'.png')
+            #     print('saved pose')
+            #     self.jpg += 1
             cv2.imshow('Robot Tip Locator', img_gray)
             # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
             # plt.imshow(img_gray)
@@ -285,9 +289,11 @@ class posPublisher(Node):
         msg.pos2 = int(y)
         msg.resistance = float(data_R)
         self.publisher_.publish(msg)
+        self.image_publisher.publish(self.br.cv2_to_imgmsg(color_img, encoding='bgr8'))
         # self.get_logger().info('Publishing X: "%i"' % msg.pos1)
         # self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
         # self.get_logger().info('Publishing R: "%f"' % msg.resistance)
+        # self.get_logger().info('Publishing wrist frame')
         self.i += 1
 
 

@@ -15,10 +15,14 @@
 import csv
 import os
 import rclpy
+import cv2
 from rclpy.node import Node
 
 from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+
 
 def write_value(X, Y, R):
     filename = 'sensor_aug23_3.csv'
@@ -44,13 +48,29 @@ class posSubscriber(Node):
             10)
         self.subscription  # prevent unused variable warning
 
+        self.image_subscription = self.create_subscription(
+            Image,
+            'wrist_frame',
+            self.image_callback,
+            10)
+        self.image_subscription
+        self.br = CvBridge()
+
     def listener_callback(self, msg):
         Xpos = msg.pos1  # read value from ROS MSG
         Ypos = msg.pos2
         R = msg.resistance
         print(Xpos, Ypos, R)
 
-        write_value(Xpos, Ypos, R)
+        # write_value(Xpos, Ypos, R)
+
+    def image_callback(self, img_msg):
+
+        # Convert the ROS Image message to OpenCV format
+        cv_img = self.br.imgmsg_to_cv2(img_msg, "bgr8")
+        cv2.imshow('Frame Stream', cv_img)
+        cv2.waitKey(1)
+        
 
 
 def main(args=None):
