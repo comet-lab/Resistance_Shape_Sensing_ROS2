@@ -21,6 +21,8 @@ import csv
 import threading
 import time
 import tkinter.messagebox
+import matplotlib.pyplot as plt
+import os
 
 import rclpy
 from rclpy.node import Node
@@ -215,6 +217,9 @@ class posPublisher(Node):
 
     def __init__(self):
         super().__init__('posPublisher')
+        self.init = True
+        self.jpg = 0
+        self.jpg_counter = 0
         self.publisher_ = self.create_publisher(Resistance, 'r_sensor', 10)
         timer_period = 0.1 # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -230,8 +235,6 @@ class posPublisher(Node):
 
 
     def timer_callback(self):
-        init = True
-
 
         frames = self.pipeline.wait_for_frames()
 
@@ -245,14 +248,31 @@ class posPublisher(Node):
         none_zero_points, x, y = dot_locator(img_gray)
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
-        if init:
+        if self.init:
             cv2.imshow('Robot Tip Locator', img_gray)
-            init = False
+            # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
+            # plt.imshow(img_gray)
+            # plt.show()
+            self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
+            self.init = False
+            print('init done')
         if none_zero_points is not None:
             coordinates_text = f"x={int(x)}, y={int(y)}"
             cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
             cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            self.jpg_counter += 1
+            print(self.jpg_counter)
+            if self.jpg_counter == 100:
+                self.jpg_counter = 0
+                # plt_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(os.path.join(self.path, str(self.jpg)+'.jpg'), color_img)
+                # plt.savefig(str(self.jpg)+'.png')
+                print('saved pose')
+                self.jpg += 1
             cv2.imshow('Robot Tip Locator', img_gray)
+            # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
+            # plt.imshow(img_gray)
+            # plt.show()
             # data = read_R()
             # print(data_R)
         if cv2.waitKey(1) & 0xFF == 27:
@@ -292,7 +312,8 @@ def main(args=None):
 def thread_function(): 
     global data_R
     while 1:
-        data_R = read_R()
+        # data_R = read_R()
+        data_R = 0
         # print(data_R)
 
 

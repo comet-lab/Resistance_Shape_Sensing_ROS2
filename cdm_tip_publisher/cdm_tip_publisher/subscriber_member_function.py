@@ -21,8 +21,8 @@ from std_msgs.msg import String
 from cdm_tip_msgs.msg import Resistance
 
 def write_value(X, Y, R):
-    filename = 'sensor_aug15_1.csv'
-    path = '/Home/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data'
+    filename = 'sensor_aug23_3.csv'
+    path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data'
     file_path = os.path.join(path, filename)
     data = [X, Y, R]
     with open(filename, 'a', newline='') as file:
