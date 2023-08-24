@@ -32,6 +32,12 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
 global data_R
+cali_width, cali_height = 170, 105
+first_i, first_j = 100, 100
+scale = 2
+cali_pts = []
+wrist_pts = []
+M = []
 
 
 ## Resistance Meter Package
@@ -215,11 +221,30 @@ def dot_locator(gray_image):
     return non_zero_points, x, y
 
 
+def is_near_center(x, y, centers):
+    for cx, cy in centers:
+        distance = np.sqrt((cx - x)**2 + (cy - y)**2)
+        if distance < 20:
+            return (cx, cy)
+    return None
+
+def click_event(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if len(cali_pts) < 4:
+            cali_pts.append((x, y))
+        else:
+            if len(wrist_pts) < 2:
+                wrist_pts.append((x, y))
+        print(x,y)
+
+
 class posPublisher(Node):
 
     def __init__(self):
         super().__init__('posPublisher')
         self.init = True
+        self.img_init = True
+        self.wrist_init = True
         self.jpg = 0
         self.jpg_counter = 0
         self.publisher_ = self.create_publisher(Resistance, 'r_sensor', 10)
@@ -228,6 +253,8 @@ class posPublisher(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
         self.br = CvBridge()
+        self.centers_init = []
+
 
         # init realsense color stream
         self.pipeline = rs.pipeline()
@@ -235,16 +262,48 @@ class posPublisher(Node):
         config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
         # start streaming
         self.pipeline.start(config)
-
-
+            
 
     def timer_callback(self):
+        while (self.img_init):
+            frames = self.pipeline.wait_for_frames()
+
+            color_frame = frames.get_color_frame()
+            if not color_frame:
+                continue
+            img_color = np.asanyarray(color_frame.get_data())
+            cv2.namedWindow("manual_calibration")
+            cv2.setMouseCallback("manual_calibration", click_event)
+            cv2.imshow("manual_calibration", img_color)
+            cv2.waitKey(0)
+            if (len(cali_pts) == 4):
+                cv2.destroyAllWindows()
+                # self.correction_M()
+                self.height, self.width = img_color.shape[:2]
+                dst_pts = np.array([[first_i                 , first_j], 
+                           [first_i+scale*cali_width, first_j], 
+                           [first_i+scale*cali_width, first_j+scale*cali_height],
+                           [first_i                 , first_j+scale*cali_height] ], dtype="float32")
+            
+                self.M = cv2.getPerspectiveTransform(np.array(cali_pts, dtype='float32'), dst_pts)
+                self.img_init = False
+                # print(M)
+            img_warpped = cv2.warpPerspective(img_color, self.M, (self.width, self.height))
+            cv2.namedWindow("scaling_finder")
+            cv2.setMouseCallback("scaling_finder", click_event)
+            cv2.imshow("scaling_finder", img_warpped)
+            cv2.waitKey(0)
+            if (len(wrist_pts) == 2):
+                cv2.destroyAllWindows()
+                print(wrist_pts)
+
         # wait for realsense color frame
         frames = self.pipeline.wait_for_frames()
 
         color_frame = frames.get_color_frame()
         # frame to np array as image
-        color_img = np.asanyarray(color_frame.get_data())
+        color_img1 = np.asanyarray(color_frame.get_data())
+        color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
 
         # apply color filter
         filtered_img = colorFilter(color_img)
@@ -267,19 +326,7 @@ class posPublisher(Node):
             coordinates_text = f"x={int(x)}, y={int(y)}"
             cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
             cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-            # self.jpg_counter += 1
-            # print(self.jpg_counter)
-            # if self.jpg_counter == 100:
-            #     self.jpg_counter = 0
-            #     # plt_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
-            #     cv2.imwrite(os.path.join(self.path, str(self.jpg)+'.jpg'), color_img)
-            #     # plt.savefig(str(self.jpg)+'.png')
-            #     print('saved pose')
-            #     self.jpg += 1
             cv2.imshow('Robot Tip Locator', img_gray) # update viewer
-            # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
-            # plt.imshow(img_gray)
-            # plt.show()
             # data = read_R()
             # print(data_R)
         if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
