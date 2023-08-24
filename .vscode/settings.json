@@ -9,5 +9,6 @@
         "/home/wenpeng/Documents/ros2_ws/install/cdm_tip_publisher/lib/python3.8/site-packages",
         "/home/wenpeng/Documents/ros2_ws/install/cdm_tip_msgs/lib/python3.8/site-packages",
         "/opt/ros/galactic/lib/python3.8/site-packages"
-    ]
+    ],
+    "cmake.configureOnOpen": false
 }

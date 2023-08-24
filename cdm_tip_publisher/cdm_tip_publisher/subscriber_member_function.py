@@ -25,11 +25,12 @@ from cv_bridge import CvBridge
 
 
 def write_value(X, Y, R):
-    filename = 'sensor_aug23_3.csv'
+    # csv name and file path (NEED CHANGE FOR DIFFERENT TRAILS)
+    filename = 'test.csv'
     path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data'
     file_path = os.path.join(path, filename)
     data = [X, Y, R]
-    with open(filename, 'a', newline='') as file:
+    with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file, delimiter=',')
         writer.writerow(data)
         print('value done')
@@ -41,6 +42,7 @@ class posSubscriber(Node):
 
     def __init__(self):
         super().__init__('posSubscriber')
+        # tip position & Resistance value subscriber
         self.subscription = self.create_subscription(
             Resistance,
             '/r_sensor',
@@ -48,27 +50,49 @@ class posSubscriber(Node):
             10)
         self.subscription  # prevent unused variable warning
 
+        # wrist pose subscriber
         self.image_subscription = self.create_subscription(
             Image,
             'wrist_frame',
             self.image_callback,
             10)
-        self.image_subscription
+        self.image_subscription  # prevent unused variable warning
+
+        # Class shared variables init
         self.br = CvBridge()
+        self.flag = False
+        self.jpg = 0
+        self.jpg_counter = 0
+
+        # FilePath for saving the wrist frames
+        self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
 
     def listener_callback(self, msg):
-        Xpos = msg.pos1  # read value from ROS MSG
+        # read value from ROS MSG
+        Xpos = msg.pos1
         Ypos = msg.pos2
         R = msg.resistance
+        if (Xpos&Ypos): # check if camera is working
+            self.flag = True # flag for saving wrist pose
         print(Xpos, Ypos, R)
-
-        # write_value(Xpos, Ypos, R)
+        write_value(Xpos, Ypos, R) # write to data csv
+        
 
     def image_callback(self, img_msg):
 
         # Convert the ROS Image message to OpenCV format
-        cv_img = self.br.imgmsg_to_cv2(img_msg, "bgr8")
-        cv2.imshow('Frame Stream', cv_img)
+        self.cv_img = self.br.imgmsg_to_cv2(img_msg, "bgr8")
+        if self.flag:
+            # print(self.jpg_counter)
+            if self.jpg_counter == 0:  # wrist frame sample rate (Change counter++ and counter==)
+                    plt_img = self.cv_img
+                    cv2.imwrite(os.path.join(self.img_path, str(self.jpg)+'.jpg'), plt_img) # saving each wrist pose
+                    self.jpg += 1
+                    self.jpg_counter = 0
+            self.jpg_counter += 0
+            
+        # Show Real-time frame stream in separate window
+        cv2.imshow('Frame Stream', self.cv_img)  
         cv2.waitKey(1)
         
 

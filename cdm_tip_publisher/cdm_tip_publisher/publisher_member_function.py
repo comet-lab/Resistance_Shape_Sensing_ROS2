@@ -229,7 +229,7 @@ class posPublisher(Node):
         self.i = 0
         self.br = CvBridge()
 
-        # init color stream
+        # init realsense color stream
         self.pipeline = rs.pipeline()
         config = rs.config()
         config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
@@ -239,10 +239,11 @@ class posPublisher(Node):
 
 
     def timer_callback(self):
-
+        # wait for realsense color frame
         frames = self.pipeline.wait_for_frames()
 
         color_frame = frames.get_color_frame()
+        # frame to np array as image
         color_img = np.asanyarray(color_frame.get_data())
 
         # apply color filter
@@ -253,6 +254,7 @@ class posPublisher(Node):
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
         if self.init:
+            # init the filter viewer
             cv2.imshow('Robot Tip Locator', img_gray)
             # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
             # plt.imshow(img_gray)
@@ -261,6 +263,7 @@ class posPublisher(Node):
             self.init = False
             print('init done')
         if none_zero_points is not None:
+            # draw the tip in viewer
             coordinates_text = f"x={int(x)}, y={int(y)}"
             cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
             cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
@@ -273,17 +276,17 @@ class posPublisher(Node):
             #     # plt.savefig(str(self.jpg)+'.png')
             #     print('saved pose')
             #     self.jpg += 1
-            cv2.imshow('Robot Tip Locator', img_gray)
+            cv2.imshow('Robot Tip Locator', img_gray) # update viewer
             # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
             # plt.imshow(img_gray)
             # plt.show()
             # data = read_R()
             # print(data_R)
-        if cv2.waitKey(1) & 0xFF == 27:
+        if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
             self.pipeline.stop()
             cv2.destroyAllWindows()
 
-
+        # publish msg and Image
         msg = Resistance()
         msg.pos1 = int(x)
         msg.pos2 = int(y)
@@ -318,8 +321,8 @@ def main(args=None):
 def thread_function(): 
     global data_R
     while 1:
-        # data_R = read_R()
-        data_R = 0
+        # data_R = read_R() # data read from resistance meter
+        data_R = 0 # test code without resistance meter
         # print(data_R)
 
 
