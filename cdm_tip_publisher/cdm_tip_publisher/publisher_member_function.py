@@ -282,10 +282,16 @@ class posPublisher(Node):
                 cv2.destroyAllWindows()
                 # self.correction_M()
                 self.height, self.width = img_color.shape[:2]
-                dst_pts = np.array([[first_i                 , first_j], 
-                           [first_i+scale*cali_width, first_j], 
-                           [first_i+scale*cali_width, first_j+scale*cali_height],
-                           [first_i                 , first_j+scale*cali_height] ], dtype="float32")
+                # dst_pts = np.array([[first_i                 , first_j], 
+                #            [first_i+scale*cali_width, first_j], 
+                #            [first_i+scale*cali_width, first_j+scale*cali_height],
+                #            [first_i                 , first_j+scale*cali_height] ], dtype="float32")
+                dst_pts = np.array([
+                    [0, 0],
+                    [self.width - 1, 0],
+                    [self.width - 1, self.height - 1],
+                    [0, self.height - 1]
+                ], dtype='float32')
             
                 self.M = cv2.getPerspectiveTransform(np.array(cali_pts, dtype='float32'), dst_pts)
                 self.img_init = False

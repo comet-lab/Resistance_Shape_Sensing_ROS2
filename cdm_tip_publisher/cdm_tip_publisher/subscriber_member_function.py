@@ -61,7 +61,7 @@ class posSubscriber(Node):
         # Class shared variables init
         self.br = CvBridge()
         self.flag = False
-        self.jpg = 0
+        self.jpg = 1
         self.jpg_counter = 0
 
         # FilePath for saving the wrist frames
