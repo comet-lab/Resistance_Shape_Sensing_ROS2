@@ -38,6 +38,7 @@ scale = 2
 cali_pts = []
 wrist_pts = []
 M = []
+wrist = 2
 
 
 ## Resistance Meter Package
@@ -271,6 +272,7 @@ class posPublisher(Node):
             color_frame = frames.get_color_frame()
             if not color_frame:
                 continue
+            print("Prespective Transformation Init")
             img_color = np.asanyarray(color_frame.get_data())
             cv2.namedWindow("manual_calibration")
             cv2.setMouseCallback("manual_calibration", click_event)
@@ -289,13 +291,19 @@ class posPublisher(Node):
                 self.img_init = False
                 # print(M)
             img_warpped = cv2.warpPerspective(img_color, self.M, (self.width, self.height))
+            print('Pixel to Real Scaling Init')
             cv2.namedWindow("scaling_finder")
             cv2.setMouseCallback("scaling_finder", click_event)
             cv2.imshow("scaling_finder", img_warpped)
             cv2.waitKey(0)
             if (len(wrist_pts) == 2):
                 cv2.destroyAllWindows()
-                print(wrist_pts)
+                distance_pixel = np.sqrt((wrist_pts[-1][0] - wrist_pts[-2][0])**2 + (wrist_pts[-1][1] - wrist_pts[-2][1])**2)
+                # txt_x = int(0.5*(wrist_pts[-1][0] + wrist_pts[-2][0]) - 50)
+                # txt_y = int(0.5*(wrist_pts[-1][1] + wrist_pts[-2][1]))
+                self.p2r_scale = wrist/distance_pixel
+                print(f"Current Pixel Distance is: {distance_pixel}")
+                print(f"Pixel to Real Scaling is: {self.p2r_scale}")
 
         # wait for realsense color frame
         frames = self.pipeline.wait_for_frames()
