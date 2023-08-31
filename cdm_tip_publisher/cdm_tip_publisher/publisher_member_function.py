@@ -324,6 +324,7 @@ class posPublisher(Node):
         color_frame = frames.get_color_frame()
         # frame to np array as image
         color_img1 = np.asanyarray(color_frame.get_data())
+        self.time0 = time.time()
         color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
         # color_img = color_img1
         # apply color filter
@@ -333,34 +334,37 @@ class posPublisher(Node):
         none_zero_points, x, y = dot_locator(img_gray)
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
-        if self.init:
-            # init the filter viewer
-            cv2.imshow('Robot Tip Locator', img_gray)
-            # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
-            # plt.imshow(img_gray)
-            # plt.show()
-            # self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
-            self.init = False
-            print('init done')
-        if none_zero_points is not None:
-            # draw the tip in viewer
-            coordinates_text = f"x={int(x)}, y={int(y)}"
-            cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
-            cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.imshow('Robot Tip Locator', img_gray) # update viewer
-            # data = read_R()
-            # print(data_R)
-        if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
-            self.pipeline.stop()
-            cv2.destroyAllWindows()
+        # if self.init:
+        #     # init the filter viewer
+        #     cv2.imshow('Robot Tip Locator', img_gray)
+        #     # img_gray = cv2.cvtColor(img_gray, cv2.COLOR_BGR2RGB)
+        #     # plt.imshow(img_gray)
+        #     # plt.show()
+        #     # self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
+        #     self.init = False
+        #     print('init done')
+        # if none_zero_points is not None:
+        #     # draw the tip in viewer
+        #     coordinates_text = f"x={int(x)}, y={int(y)}"
+        #     # cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
+        #     # cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        #     # cv2.imshow('Robot Tip Locator', img_gray) # update viewer
+        #     # data = read_R()
+        #     # print(data_R)
+        # if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
+        #     self.pipeline.stop()
+        #     cv2.destroyAllWindows()
 
         # publish msg and Image
         msg = Resistance()
         msg.pos1 = int(x)
         msg.pos2 = int(y)
         msg.resistance = float(data_R)
+        msg.timestamp = time.time()
         self.publisher_.publish(msg)
         self.image_publisher.publish(self.br.cv2_to_imgmsg(color_img, encoding='bgr8'))
+        self.time1 = time.time()
+        print(self.time1 - self.time0)
         # self.get_logger().info('Publishing X: "%i"' % msg.pos1)
         # self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
         # self.get_logger().info('Publishing R: "%f"' % msg.resistance)
