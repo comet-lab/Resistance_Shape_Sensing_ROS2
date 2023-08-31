@@ -65,7 +65,7 @@ class posSubscriber(Node):
         self.jpg_counter = 0
 
         # FilePath for saving the wrist frames
-        self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
+        self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses/trail4'
 
     def listener_callback(self, msg):
         # read value from ROS MSG
@@ -86,7 +86,8 @@ class posSubscriber(Node):
             # print(self.jpg_counter)
             if self.jpg_counter == 0:  # wrist frame sample rate (Change counter++ and counter==)
                     plt_img = self.cv_img
-                    cv2.imwrite(os.path.join(self.img_path, str(self.jpg)+'.jpg'), plt_img) # saving each wrist pose
+                    # Comment here for testing
+                    # cv2.imwrite(os.path.join(self.img_path, str(self.jpg)+'.jpg'), plt_img) # saving each wrist pose
                     self.jpg += 1
                     self.jpg_counter = 0
             self.jpg_counter += 0

@@ -286,11 +286,18 @@ class posPublisher(Node):
                 #            [first_i+scale*cali_width, first_j], 
                 #            [first_i+scale*cali_width, first_j+scale*cali_height],
                 #            [first_i                 , first_j+scale*cali_height] ], dtype="float32")
+                # dst_pts = np.array([
+                #     [0, 0],
+                #     [self.width - 1, 0],
+                #     [self.width - 1, self.height - 1],
+                #     [0, self.height - 1]
+                # ], dtype='float32')
+                i, j = 100, 100
                 dst_pts = np.array([
-                    [0, 0],
-                    [self.width - 1, 0],
-                    [self.width - 1, self.height - 1],
-                    [0, self.height - 1]
+                    [0+i, 0+j],
+                    [400+i, 0+j],
+                    [400+i, 300+j],
+                    [0+i, 300+j]
                 ], dtype='float32')
             
                 self.M = cv2.getPerspectiveTransform(np.array(cali_pts, dtype='float32'), dst_pts)
@@ -318,7 +325,7 @@ class posPublisher(Node):
         # frame to np array as image
         color_img1 = np.asanyarray(color_frame.get_data())
         color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
-
+        # color_img = color_img1
         # apply color filter
         filtered_img = colorFilter(color_img)
         # convert to grayscale pic
