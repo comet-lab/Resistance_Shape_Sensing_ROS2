@@ -252,7 +252,6 @@ class posPublisher(Node):
         self.image_publisher = self.create_publisher(Image, 'wrist_frame', 10)
         timer_period = 0.1 # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
         self.br = CvBridge()
         self.centers_init = []
 
@@ -324,7 +323,7 @@ class posPublisher(Node):
         color_frame = frames.get_color_frame()
         # frame to np array as image
         color_img1 = np.asanyarray(color_frame.get_data())
-        self.time0 = time.time()
+        self.time0 = time.time() # pre processing time
         color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
         # color_img = color_img1
         # apply color filter
@@ -363,13 +362,12 @@ class posPublisher(Node):
         msg.timestamp = time.time()
         self.publisher_.publish(msg)
         self.image_publisher.publish(self.br.cv2_to_imgmsg(color_img, encoding='bgr8'))
-        self.time1 = time.time()
-        print(self.time1 - self.time0)
+        self.time1 = time.time() # post processing time
+        print(self.time1 - self.time0) # processing time
         # self.get_logger().info('Publishing X: "%i"' % msg.pos1)
         # self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
         # self.get_logger().info('Publishing R: "%f"' % msg.resistance)
         # self.get_logger().info('Publishing wrist frame')
-        self.i += 1
 
 
 def main(args=None):

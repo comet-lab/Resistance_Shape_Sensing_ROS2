@@ -16,6 +16,7 @@ import csv
 import os
 import rclpy
 import cv2
+import time
 from rclpy.node import Node
 
 from std_msgs.msg import String
@@ -63,6 +64,8 @@ class posSubscriber(Node):
         self.flag = False
         self.jpg = 1
         self.jpg_counter = 0
+        self.ts0 = 0.0
+        self.stamp = 0.0
 
         # FilePath for saving the wrist frames
         self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses/trail4'
@@ -72,11 +75,15 @@ class posSubscriber(Node):
         Xpos = msg.pos1
         Ypos = msg.pos2
         R = msg.resistance
-        ts = msg.timestamp
+        self.ts = msg.timestamp #
+        if self.jpg == 1:
+            self.ts0 = self.ts
         if (Xpos&Ypos): # check if camera is working
             self.flag = True # flag for saving wrist pose
-        print(Xpos, Ypos, R, ts)
-        write_value(Xpos, Ypos, R, ts) # write to data csv
+        print(Xpos, Ypos, R, round(self.stamp+self.ts-self.ts0, 2))
+        write_value(Xpos, Ypos, R, round(self.stamp+self.ts-self.ts0, 2)) # write to data csv
+        self.stamp += self.ts - self.ts0 # update stamp for next data
+        self.ts0 = self.ts # updating last data time
         
 
     def image_callback(self, img_msg):
