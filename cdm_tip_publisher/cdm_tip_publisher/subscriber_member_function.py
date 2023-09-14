@@ -25,12 +25,12 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
 
-def write_value(X, Y, R, timestamp):
+def write_value(X, Y, angle, R, timestamp):
     # csv name and file path (NEED CHANGE FOR DIFFERENT TRAILS)
     filename = 'test.csv'
     path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data'
     file_path = os.path.join(path, filename)
-    data = [X, Y, R, timestamp]
+    data = [X, Y, angle, R, timestamp]
     with open(file_path, 'a', newline='') as file:
         writer = csv.writer(file, delimiter=',')
         writer.writerow(data)
@@ -68,20 +68,21 @@ class posSubscriber(Node):
         self.stamp = 0.0
 
         # FilePath for saving the wrist frames
-        self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses/trail4'
+        self.img_path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses/'
 
     def listener_callback(self, msg):
         # read value from ROS MSG
         Xpos = msg.pos1
         Ypos = msg.pos2
+        bend_angle = msg.angle
         R = msg.resistance
         self.ts = msg.timestamp #
         if self.jpg == 1:
             self.ts0 = self.ts
         if (Xpos&Ypos): # check if camera is working
             self.flag = True # flag for saving wrist pose
-        print(Xpos, Ypos, R, round(self.stamp+self.ts-self.ts0, 2))
-        write_value(Xpos, Ypos, R, round(self.stamp+self.ts-self.ts0, 2)) # write to data csv
+        print(Xpos, Ypos, bend_angle, R, round(self.stamp+self.ts-self.ts0, 2))
+        write_value(Xpos, Ypos, bend_angle, R, round(self.stamp+self.ts-self.ts0, 2)) # write to data csv
         self.stamp += self.ts - self.ts0 # update stamp for next data
         self.ts0 = self.ts # updating last data time
         

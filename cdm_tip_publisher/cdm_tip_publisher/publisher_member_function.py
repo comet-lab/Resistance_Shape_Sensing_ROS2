@@ -234,9 +234,39 @@ def click_event(event, x, y, flags, param):
         if len(cali_pts) < 4:
             cali_pts.append((x, y))
         else:
-            if len(wrist_pts) < 2:
+            if len(wrist_pts) < 3:
                 wrist_pts.append((x, y))
         print(x,y)
+
+def compute_angle(T, F, A):
+    # Construct vectors
+    v1 = np.subtract(F, T)
+    v2 = np.subtract(F, A)
+    
+    # Dot product
+    dot_product = np.dot(v1, v2)
+    
+    # Magnitudes of the vectors
+    magnitude_v1 = np.linalg.norm(v1)
+    magnitude_v2 = np.linalg.norm(v2)
+    
+    # Angle in radians
+    theta = np.arccos(dot_product / (magnitude_v1 * magnitude_v2))
+    
+    # Convert angle to degrees
+    angle_degrees = np.degrees(theta)
+    
+    return angle_degrees
+
+def extend_line(point1, point2, s):
+    direction = np.array(point2) - np.array(point1)
+    unit_direction = direction / np.linalg.norm(direction)
+
+    # Calculate new extended endpoints
+    new_point1 = point1 - s * unit_direction
+    new_point2 = point2 + s * unit_direction
+    
+    return tuple(map(int, new_point1)), tuple(map(int, new_point2))
 
 
 class posPublisher(Node):
@@ -308,9 +338,9 @@ class posPublisher(Node):
             cv2.setMouseCallback("scaling_finder", click_event)
             cv2.imshow("scaling_finder", img_warpped)
             cv2.waitKey(0)
-            if (len(wrist_pts) == 2):
+            if (len(wrist_pts) == 3):
                 cv2.destroyAllWindows()
-                distance_pixel = np.sqrt((wrist_pts[-1][0] - wrist_pts[-2][0])**2 + (wrist_pts[-1][1] - wrist_pts[-2][1])**2)
+                distance_pixel = np.sqrt((wrist_pts[1][0] - wrist_pts[0][0])**2 + (wrist_pts[1][1] - wrist_pts[0][1])**2)
                 # txt_x = int(0.5*(wrist_pts[-1][0] + wrist_pts[-2][0]) - 50)
                 # txt_y = int(0.5*(wrist_pts[-1][1] + wrist_pts[-2][1]))
                 self.p2r_scale = wrist/distance_pixel
@@ -324,13 +354,14 @@ class posPublisher(Node):
         # frame to np array as image
         color_img1 = np.asanyarray(color_frame.get_data())
         self.time0 = time.time() # pre processing time
-        color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
-        # color_img = color_img1
+        # color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
+        color_img = color_img1
         # apply color filter
         filtered_img = colorFilter(color_img)
         # convert to grayscale pic
         img_gray = cv2.cvtColor(filtered_img, cv2.COLOR_BGR2GRAY)
         none_zero_points, x, y = dot_locator(img_gray)
+        bend_angle = -(compute_angle((int(x), int(y)), wrist_pts[1], wrist_pts[2]) - 180)
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
         # if self.init:
@@ -342,22 +373,28 @@ class posPublisher(Node):
         #     # self.path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/wrist_poses'
         #     self.init = False
         #     print('init done')
-        # if none_zero_points is not None:
-        #     # draw the tip in viewer
-        #     coordinates_text = f"x={int(x)}, y={int(y)}"
-        #     # cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
-        #     # cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-        #     # cv2.imshow('Robot Tip Locator', img_gray) # update viewer
-        #     # data = read_R()
-        #     # print(data_R)
-        # if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
-        #     self.pipeline.stop()
-        #     cv2.destroyAllWindows()
+
+        ## tip viewer (comment out for fastest running speed)
+        if none_zero_points is not None:
+            # draw the tip in viewer
+            coordinates_text = f"x={int(x)}, y={int(y)}, theta={bend_angle}"
+            cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
+            cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            wrist1, wrist_base = extend_line(wrist_pts[1], wrist_pts[2], 200)
+            cv2.line(img_gray, wrist1, wrist_base,(255, 0, 0), 1)
+            cv2.line(img_gray, (int(x), int(y)), wrist_pts[1], (255, 255, 255), 1)
+            cv2.imshow('Robot Tip Locator', img_gray) # update viewer
+            # data = read_R()
+            # print(data_R)
+        if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
+            self.pipeline.stop()
+            cv2.destroyAllWindows()
 
         # publish msg and Image
         msg = Resistance()
         msg.pos1 = int(x)
         msg.pos2 = int(y)
+        msg.angle = bend_angle
         msg.resistance = float(data_R)
         msg.timestamp = time.time()
         self.publisher_.publish(msg)
