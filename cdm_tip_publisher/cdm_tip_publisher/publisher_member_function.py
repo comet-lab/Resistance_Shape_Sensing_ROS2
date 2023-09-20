@@ -173,38 +173,31 @@ def read_R():
     return msgBuf
 
 ## Color Filter Tool Functions
-def colorFilter(img_color, mode = "red"):
-    # if mode == 'blue':
-    #     lower = np.array([90, 50, 50])
-    #     upper = np.array([150, 255, 255])
-    # elif mode == 'green':
-    #     lower = np.array([25, 120, 70])
-    #     upper = np.array([95, 255, 255])
-    # elif mode == 'red':
-    #     lower_red1 = np.array([0, 100, 100])
-    #     upper_red1 = np.array([10, 255, 255])
+def colorFilter(img_color, mode="red"):
+        # Red color ranges
+        if mode == 'red':
+            lower_red1 = np.array([0, 100, 100])
+            upper_red1 = np.array([10, 255, 255])
 
-    #     lower_red2 = np.array([160, 100, 100])
-    #     upper_red2 = np.array([180, 255, 255])
-    # else:
-    #     print("Please choose red, green, and blue mode")
-    #     return
-    lower_red1 = np.array([0, 100, 100])
-    upper_red1 = np.array([10, 255, 255])
+            lower_red2 = np.array([160, 100, 100])
+            upper_red2 = np.array([180, 255, 255])
 
-    lower_red2 = np.array([160, 100, 100])
-    upper_red2 = np.array([180, 255, 255])
-    hsv = cv2.cvtColor(img_color, cv2.COLOR_BGR2HSV)
-    # mask_filter = cv2.inRange(hsv, lower, upper)
-    # img_mask = cv2.bitwise_and(hsv, hsv, mask=mask_filter)
-    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
-    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+            hsv = cv2.cvtColor(img_color, cv2.COLOR_BGR2HSV)
 
-    img_mask = mask1 + mask2
-    # img_gray = cv2.cvtColor(img_mask, cv2.COLOR_RGB2GRAY)
-    result = cv2.bitwise_and(img_color, img_color, mask=img_mask)
-    # img_thinned = cv2.ximgproc.thinning(img_gray)
-    return result
+            mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+            mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+
+            img_mask = mask1 + mask2
+            result = cv2.bitwise_and(img_color, img_color, mask=img_mask)
+        elif mode == 'green':
+            lower_green = np.array([25, 120, 70])
+            upper_green = np.array([95, 255, 255])
+
+            hsv = cv2.cvtColor(img_color, cv2.COLOR_BGR2HSV)
+            img_mask = cv2.inRange(hsv, lower_green, upper_green)
+            result = cv2.bitwise_and(img_color, img_color, mask=img_mask)
+
+        return result
 
 def dot_locator(gray_image):
     # Find the non-zero point (tip) in the img
@@ -238,10 +231,10 @@ def click_event(event, x, y, flags, param):
                 wrist_pts.append((x, y))
         print(x,y)
 
-def compute_angle(T, F, A):
+def compute_angle(P1, P2, P3, P4):
     # Construct vectors
-    v1 = np.subtract(F, T)
-    v2 = np.subtract(F, A)
+    v1 = np.subtract(P2, P1)
+    v2 = np.subtract(P4, P3)
     
     # Dot product
     dot_product = np.dot(v1, v2)
@@ -357,11 +350,16 @@ class posPublisher(Node):
         # color_img = cv2.warpPerspective(color_img1, self.M, (self.width, self.height))
         color_img = color_img1
         # apply color filter
-        filtered_img = colorFilter(color_img)
+        filtered_img_red = colorFilter(color_img)
+        filtered_img_green = colorFilter(color_img, 'green')
         # convert to grayscale pic
-        img_gray = cv2.cvtColor(filtered_img, cv2.COLOR_BGR2GRAY)
-        none_zero_points, x, y = dot_locator(img_gray)
-        bend_angle = -(compute_angle((int(x), int(y)), wrist_pts[1], wrist_pts[2]) - 180)
+        img_gray_red = cv2.cvtColor(filtered_img_red, cv2.COLOR_BGR2GRAY)
+        img_gray_green = cv2.cvtColor(filtered_img_green, cv2.COLOR_BGR2GRAY)
+        none_zero_points, xr, yr = dot_locator(img_gray_red)
+        _ , xg, yg = dot_locator(img_gray_green)
+        img_gray = cv2.bitwise_or(img_gray_red, img_gray_green)
+
+        bend_angle = -(90-compute_angle(wrist_pts[1], wrist_pts[2], (xr, yr), (xg, yg)))
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
         # if self.init:
@@ -377,23 +375,24 @@ class posPublisher(Node):
         ## tip viewer (comment out for fastest running speed)
         if none_zero_points is not None:
             # draw the tip in viewer
-            coordinates_text = f"x={int(x)}, y={int(y)}, theta={bend_angle}"
-            cv2.circle(img_gray, (int(x), int(y)), 10, (255, 255, 255), 1)
-            cv2.putText(img_gray, coordinates_text, (int(x) - 0, int(y) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-            wrist1, wrist_base = extend_line(wrist_pts[1], wrist_pts[2], 200)
-            cv2.line(img_gray, wrist1, wrist_base,(255, 0, 0), 1)
-            cv2.line(img_gray, (int(x), int(y)), wrist_pts[1], (255, 255, 255), 1)
-            cv2.imshow('Robot Tip Locator', img_gray) # update viewer
+            # coordinates_text = f"theta={bend_angle}"
+            # cv2.circle(img_gray, (int(xr), int(yr)), 10, (255, 255, 255), 1)
+            # cv2.circle(img_gray, (int(xg), int(yg)), 10, (255, 255, 255), 1)
+            # cv2.putText(img_gray, coordinates_text, (int(xr) - 0, int(yr) - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+            # wrist1, wrist_base = extend_line(wrist_pts[1], wrist_pts[2], 200)
+            # cv2.line(img_gray, wrist1, wrist_base,(255, 0, 0), 1)
+            # cv2.line(img_gray, (int(xr), int(yr)), (int(xg), int(yg)),(255, 0, 0), 1)
+            
+            # cv2.imshow('Robot Tip Locator', img_gray) # update viewer
             # data = read_R()
             # print(data_R)
+            print(bend_angle)
         if cv2.waitKey(1) & 0xFF == 27: # viewer stop commands
             self.pipeline.stop()
             cv2.destroyAllWindows()
 
         # publish msg and Image
         msg = Resistance()
-        msg.pos1 = int(x)
-        msg.pos2 = int(y)
         msg.angle = bend_angle
         msg.resistance = float(data_R)
         msg.timestamp = time.time()
