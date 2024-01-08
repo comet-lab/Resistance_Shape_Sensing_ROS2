@@ -10,5 +10,6 @@
         "/home/wenpeng/Documents/ros2_ws/install/cdm_tip_msgs/lib/python3.8/site-packages",
         "/opt/ros/galactic/lib/python3.8/site-packages"
     ],
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "cmake.sourceDirectory": "/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/cdm_tip_msgs"
 }

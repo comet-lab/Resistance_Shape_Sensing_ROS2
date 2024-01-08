@@ -31,6 +31,9 @@ from cdm_tip_msgs.msg import Resistance
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
+global line_1 
+global last_received1
+line_1, last_received1 = 0, 0
 global data_R
 cali_width, cali_height = 170, 105
 first_i, first_j = 100, 100
@@ -148,7 +151,7 @@ def read_R():
 
     #Connect
     # print("Port?")
-    port = "/dev/ttyACM0"  
+    port = "/dev/ttyACM2"  
     # print("Speed?")
     speed = 9600
     if not serial1.open(port,speed):
@@ -261,6 +264,8 @@ def extend_line(point1, point2, s):
     
     return tuple(map(int, new_point1)), tuple(map(int, new_point2))
 
+ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+
 
 class posPublisher(Node):
 
@@ -357,9 +362,11 @@ class posPublisher(Node):
         img_gray_green = cv2.cvtColor(filtered_img_green, cv2.COLOR_BGR2GRAY)
         none_zero_points, xr, yr = dot_locator(img_gray_red)
         _ , xg, yg = dot_locator(img_gray_green)
-        img_gray = cv2.bitwise_or(img_gray_red, img_gray_green)
+        # img_gray = cv2.bitwise_or(img_gray_red, img_gray_green)
 
-        bend_angle = -(90-compute_angle(wrist_pts[1], wrist_pts[2], (xr, yr), (xg, yg)))
+        bend_angle = -(90-compute_angle(wrist_pts[1], wrist_pts[2], (xr, yr), (xg, yg)))    
+        # bend_angle = 0.0
+        # none_zero_points = 1
         # cv2.imshow('Color Frame', img_gray)
         # cv2.imshow('Position of Red Point', img_gray)
         # if self.init:
@@ -394,12 +401,15 @@ class posPublisher(Node):
         # publish msg and Image
         msg = Resistance()
         msg.angle = bend_angle
+        strain = float(line_1)
+        msg.strain = strain
         msg.resistance = float(data_R)
         msg.timestamp = time.time()
         self.publisher_.publish(msg)
         self.image_publisher.publish(self.br.cv2_to_imgmsg(color_img, encoding='bgr8'))
         self.time1 = time.time() # post processing time
         print(self.time1 - self.time0) # processing time
+        print(strain)
         # self.get_logger().info('Publishing X: "%i"' % msg.pos1)
         # self.get_logger().info('Publishing Y: "%i"' % msg.pos2)
         # self.get_logger().info('Publishing R: "%f"' % msg.resistance)
@@ -425,11 +435,17 @@ def main(args=None):
 
 ## Resistance value reading thread
 def thread_function(): 
+    global line_1, last_received1
+    buffer1 = ''
     global data_R
     while 1:
         # data_R = read_R() # data read from resistance meter
-        data_R = 0 # test code without resistance meter
+        data_R = 0.0 # test code without resistance meter
         # print(data_R)
+        buffer1 += ser.read(ser.inWaiting()).decode()
+        if '\n' in buffer1:
+            last_received1, buffer1 = buffer1.split('\n')[-2:]
+        line_1 = last_received1
 
 
 if __name__ == '__main__':
