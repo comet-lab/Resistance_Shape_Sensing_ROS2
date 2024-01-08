@@ -26,6 +26,13 @@ Plug in Hioki Resistance meter and Realsense Camera, and run (Source the termina
 ``ros2 run cdm_tip_publisher pos_subscriber
 ``
 
+# Serial Connection Sequence
+- Arduino for encoder
+- CTR Control Board
+- Resistance Meter
+- Realsense Camera
+
+
 # Dependencies
 ## Required additional python packages:
 - python-opencv
