@@ -27,8 +27,8 @@ from cv_bridge import CvBridge
 
 def write_value(angle, strain, R, timestamp):
     # csv name and file path (NEED CHANGE FOR DIFFERENT TRAILS)
-    filename = 'test2024.csv'
-    path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data'
+    filename = 'CAAR_Carbon_5mm_5.csv'
+    path = '/home/wenpeng/Documents/ros2_ws/src/CDM_Resistance_Shape_Sensing_ROS2/data/Jan11'
     file_path = os.path.join(path, filename)
     data = [angle, strain, R, timestamp]
     with open(file_path, 'a', newline='') as file:

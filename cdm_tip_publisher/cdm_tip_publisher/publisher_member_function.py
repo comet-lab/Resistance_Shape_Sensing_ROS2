@@ -160,7 +160,8 @@ def read_R():
     #Send and receive commands
 
         # print("Please enter the command (Exit with no input)")
-    command = "MEAS:RES?"
+    # command = "MEAS:RES?" # rm 3545 command
+    command = ":MEASure?"
         #Exit if no input
     # if command == "":
     #     break
@@ -439,8 +440,8 @@ def thread_function():
     buffer1 = ''
     global data_R
     while 1:
-        # data_R = read_R() # data read from resistance meter
-        data_R = 0.0 # test code without resistance meter
+        data_R = read_R() # data read from resistance meter
+        # data_R = 0.0 # test code without resistance meter
         # print(data_R)
         buffer1 += ser.read(ser.inWaiting()).decode()
         if '\n' in buffer1:
